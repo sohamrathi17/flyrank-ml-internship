@@ -1,7 +1,4 @@
 # submission/
 
-One file lives here: **`paper_url.txt`**.
-
-When your capstone research paper is deployed, replace the placeholder in
-`paper_url.txt` with **exactly one line — the direct URL of your deployed paper**.
-Nothing else goes in this folder. This file is mandatory: it is how your paper is found.
+[`paper_url.txt`](paper_url.txt) holds the URL of my deployed capstone paper:
+[sohamrathi17.github.io/flyrank-ml-internship](https://sohamrathi17.github.io/flyrank-ml-internship/)
