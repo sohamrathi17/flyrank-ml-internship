@@ -1,0 +1,46 @@
+{
+  "assignment": "ML-09 validation audit",
+  "test_slice": "decision 2026-03-31, label April 2026",
+  "time_train_slice": "decision 2026-02-28, label March 2026",
+  "score": "logistic probability x (1 + March drop per day)",
+  "seed": 42,
+  "designs": {
+    "ML-07 rule (no training)": {
+      "precision@20": 0.7114,
+      "loss_captured@20": 0.2411,
+      "ROC-AUC": null,
+      "base_rate": 0.4887
+    },
+    "before: random row split": {
+      "precision@20": 0.7159,
+      "loss_captured@20": 0.2424,
+      "ROC-AUC": 0.7226,
+      "base_rate": 0.4887
+    },
+    "after: grouped by client": {
+      "precision@20": 0.7182,
+      "loss_captured@20": 0.2425,
+      "ROC-AUC": 0.6327,
+      "base_rate": 0.4887
+    },
+    "after: time-aware (Feb->Mar train)": {
+      "precision@20": 0.7205,
+      "loss_captured@20": 0.2349,
+      "ROC-AUC": 0.6575,
+      "base_rate": 0.4887
+    }
+  },
+  "new_clients_time_aware": {
+    "clients": 8,
+    "precision@20": 0.6438,
+    "loss_captured@20": 0.2325,
+    "base_rate": 0.3991
+  },
+  "calibration": {
+    "mean_pred_time_model": 0.2448,
+    "actual_rate": 0.4742,
+    "train_month_rate": 0.2106
+  },
+  "leak_test_auc": 0.9994,
+  "population_dropped_share": 0.1849
+}
