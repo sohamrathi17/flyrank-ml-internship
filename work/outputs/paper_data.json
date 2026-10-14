@@ -1,0 +1,253 @@
+{
+  "slice": {
+    "pages": 50299,
+    "clients": 32,
+    "decline_rate": 0.4742,
+    "train_pages": 43596,
+    "train_decline_rate": 0.2106
+  },
+  "decline_by_momentum": [
+    {
+      "bucket": "< 0.5",
+      "n": 3871,
+      "rate": 0.8261
+    },
+    {
+      "bucket": "0.5-0.8",
+      "n": 11357,
+      "rate": 0.6186
+    },
+    {
+      "bucket": "0.8-0.95",
+      "n": 7577,
+      "rate": 0.5042
+    },
+    {
+      "bucket": "0.95-1.05",
+      "n": 4913,
+      "rate": 0.4443
+    },
+    {
+      "bucket": "1.05-2",
+      "n": 18672,
+      "rate": 0.3558
+    },
+    {
+      "bucket": "> 2",
+      "n": 3909,
+      "rate": 0.2517
+    }
+  ],
+  "decline_by_ctr_vs_tier": [
+    {
+      "bucket": "< 0.5x tier",
+      "n": 6168,
+      "rate": 0.6294
+    },
+    {
+      "bucket": "0.5-1x",
+      "n": 8884,
+      "rate": 0.5532
+    },
+    {
+      "bucket": "1-2x",
+      "n": 11206,
+      "rate": 0.474
+    },
+    {
+      "bucket": "2x+",
+      "n": 13534,
+      "rate": 0.3388
+    }
+  ],
+  "model_comparison": {
+    "random order (expected)": {
+      "precision@20": 0.4887,
+      "loss captured@20": 0.1043,
+      "ROC-AUC": null
+    },
+    "ML-07 baseline rule": {
+      "precision@20": 0.7114,
+      "loss captured@20": 0.2411,
+      "ROC-AUC": null
+    },
+    "logistic regression": {
+      "precision@20": 0.75,
+      "loss captured@20": 0.1973,
+      "ROC-AUC": 0.6327
+    },
+    "boosted trees (classifier)": {
+      "precision@20": 0.7341,
+      "loss captured@20": 0.1738,
+      "ROC-AUC": 0.6534
+    },
+    "boosted trees (expected loss)": {
+      "precision@20": 0.6909,
+      "loss captured@20": 0.2639,
+      "ROC-AUC": null
+    },
+    "logistic prob x March drop/day": {
+      "precision@20": 0.7182,
+      "loss captured@20": 0.2425,
+      "ROC-AUC": null
+    }
+  },
+  "validation": {
+    "ML-07 rule (no training)": {
+      "precision@20": 0.7114,
+      "loss_captured@20": 0.2411,
+      "ROC-AUC": null,
+      "base_rate": 0.4887
+    },
+    "before: random row split": {
+      "precision@20": 0.7159,
+      "loss_captured@20": 0.2424,
+      "ROC-AUC": 0.7226,
+      "base_rate": 0.4887
+    },
+    "after: grouped by client": {
+      "precision@20": 0.7182,
+      "loss_captured@20": 0.2425,
+      "ROC-AUC": 0.6327,
+      "base_rate": 0.4887
+    },
+    "after: time-aware (Feb->Mar train)": {
+      "precision@20": 0.7205,
+      "loss_captured@20": 0.2349,
+      "ROC-AUC": 0.6575,
+      "base_rate": 0.4887
+    }
+  },
+  "new_clients_time_aware": {
+    "clients": 8,
+    "precision@20": 0.6438,
+    "loss_captured@20": 0.2325,
+    "base_rate": 0.3991
+  },
+  "calibration": {
+    "mean_pred_time_model": 0.2448,
+    "actual_rate": 0.4742,
+    "train_month_rate": 0.2106
+  },
+  "leak_test_auc": 0.9994,
+  "population_dropped_share": 0.1849,
+  "queue_eval": {
+    "precision@20": 0.7205,
+    "loss_captured@20": 0.2349,
+    "rule_precision@20": 0.7114,
+    "rule_loss_captured@20": 0.2411,
+    "base_rate": 0.4887,
+    "clients": 22
+  },
+  "top20_by_confidence": [
+    {
+      "label": "high",
+      "n": 215,
+      "rate": 0.786
+    },
+    {
+      "label": "medium",
+      "n": 104,
+      "rate": 0.7212
+    },
+    {
+      "label": "low",
+      "n": 121,
+      "rate": 0.6033
+    }
+  ],
+  "top20_by_action": [
+    {
+      "label": "expand",
+      "n": 45,
+      "rate": 0.7111
+    },
+    {
+      "label": "monitor",
+      "n": 142,
+      "rate": 0.7113
+    },
+    {
+      "label": "protect",
+      "n": 2,
+      "rate": 0.5
+    },
+    {
+      "label": "refresh",
+      "n": 251,
+      "rate": 0.7291
+    }
+  ],
+  "example_queue": [
+    {
+      "rank_in_client": 1,
+      "action": "monitor",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 64% within March",
+      "position": 40.4
+    },
+    {
+      "rank_in_client": 2,
+      "action": "refresh",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 50% within March; page 1 (avg position 6.9)",
+      "position": 6.9
+    },
+    {
+      "rank_in_client": 3,
+      "action": "monitor",
+      "confidence": "low",
+      "reason_codes": "daily impressions fell 52% within March; 30% of March impressions on one day (spike)",
+      "position": 2.7
+    },
+    {
+      "rank_in_client": 4,
+      "action": "monitor",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 60% within March; CTR below its position tier",
+      "position": 28.1
+    },
+    {
+      "rank_in_client": 5,
+      "action": "monitor",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 39% within March",
+      "position": 27.0
+    },
+    {
+      "rank_in_client": 6,
+      "action": "monitor",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 44% within March; CTR below its position tier",
+      "position": 28.0
+    },
+    {
+      "rank_in_client": 7,
+      "action": "monitor",
+      "confidence": "low",
+      "reason_codes": "daily impressions fell 77% within March; 58% of March impressions on one day (spike)",
+      "position": 2.0
+    },
+    {
+      "rank_in_client": 8,
+      "action": "refresh",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 23% within March; CTR below its position tier",
+      "position": 2.9
+    },
+    {
+      "rank_in_client": 9,
+      "action": "refresh",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 44% within March; page 1 (avg position 8.5)",
+      "position": 8.5
+    },
+    {
+      "rank_in_client": 10,
+      "action": "refresh",
+      "confidence": "high",
+      "reason_codes": "daily impressions fell 56% within March; page 1 (avg position 6.3)",
+      "position": 6.3
+    }
+  ]
+}
