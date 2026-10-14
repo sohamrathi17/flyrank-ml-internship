@@ -1,0 +1,41 @@
+{
+  "assignment": "ML-08 model vs baseline",
+  "slice": "decision 2026-03-31, features March 2026, label April 2026 (same as ML-04/ML-07)",
+  "split": "GroupKFold(5) by client, out-of-fold scores; metrics per client (>= 20 pages), then averaged",
+  "seed": 42,
+  "sklearn_version": "1.6.1",
+  "n_pages": 50299,
+  "n_clients": 32,
+  "results": {
+    "random order (expected)": {
+      "precision@20": 0.4887,
+      "loss captured@20": 0.1043,
+      "ROC-AUC": null
+    },
+    "ML-07 baseline rule": {
+      "precision@20": 0.7114,
+      "loss captured@20": 0.2411,
+      "ROC-AUC": null
+    },
+    "logistic regression": {
+      "precision@20": 0.75,
+      "loss captured@20": 0.1973,
+      "ROC-AUC": 0.6327
+    },
+    "boosted trees (classifier)": {
+      "precision@20": 0.7341,
+      "loss captured@20": 0.1738,
+      "ROC-AUC": 0.6534
+    },
+    "boosted trees (expected loss)": {
+      "precision@20": 0.6909,
+      "loss captured@20": 0.2639,
+      "ROC-AUC": null
+    },
+    "logistic prob x March drop/day": {
+      "precision@20": 0.7182,
+      "loss captured@20": 0.2425,
+      "ROC-AUC": null
+    }
+  }
+}
