@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Which Pages Should You Refresh First?</title>
+<meta name="description" content="A month-ahead review queue for search visibility decline, tested on ~50,000 pages of real Search Console data against a transparent rule, with client-grouped, time-aware and sealed-month validation.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-1-soft: #b7d3f6;
+  --accent-bg: #eef4fc;
+  --code-bg: #f0efec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-1-soft: #184f95;
+    --accent-bg: #15233a;
+    --code-bg: #262624;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255,255,255,0.10);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-1-soft: #184f95;
+  --accent-bg: #15233a;
+  --code-bg: #262624;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 17px/1.62 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 760px; margin: 0 auto; padding: 40px 16px 80px; }
+header.title { margin-bottom: 28px; }
+.kicker { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+h1 { font-size: clamp(28px, 5vw, 38px); line-height: 1.15; margin: 0 0 14px; letter-spacing: -0.01em; }
+.subtitle { font-size: 19px; color: var(--ink-2); margin: 0 0 16px; }
+.byline { font-size: 14px; color: var(--muted); }
+.byline a { color: inherit; }
+h2 { font-size: 24px; margin: 52px 0 12px; line-height: 1.25; }
+h2 .num { color: var(--muted); font-weight: 500; margin-right: 6px; }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+p, li { color: var(--ink); }
+p { margin: 0 0 14px; }
+ul, ol { padding-left: 22px; margin: 0 0 14px; }
+li { margin-bottom: 6px; }
+a { color: var(--series-1); }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 0.88em; }
+.abstract {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px 22px; margin: 8px 0 8px;
+}
+.abstract h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.abstract p:last-child { margin-bottom: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 22px 0 6px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.stat .v { font-size: 28px; font-weight: 650; line-height: 1.1; }
+.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.callout { background: var(--accent-bg); border-radius: 10px; padding: 14px 18px; margin: 18px 0; }
+.callout p:last-child { margin-bottom: 0; }
+figure { margin: 26px 0 30px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 18px 14px; }
+figure .ftitle { font-weight: 600; font-size: 16px; margin: 0 0 2px; }
+figure .fsub { font-size: 13px; color: var(--ink-2); margin: 0 0 12px; }
+figcaption { font-size: 14px; color: var(--ink-2); margin-top: 10px; border-top: 1px solid var(--grid); padding-top: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.chart { width: 100%; position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 10; opacity: 0; transition: opacity .08s;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 13px; line-height: 1.4; box-shadow: 0 4px 16px rgba(0,0,0,.12); max-width: 260px;
+}
+.tip b { font-weight: 600; }
+.tablewrap { overflow-x: auto; margin: 16px 0 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; background: var(--surface); }
+tr:last-child td { border-bottom: none; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.hl td { background: var(--accent-bg); }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--ink-2); white-space: nowrap; }
+details { margin: 10px 0 16px; }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--grid); font-size: 14px; color: var(--ink-2); }
+.toc { font-size: 14px; color: var(--ink-2); margin: 18px 0 0; }
+.toc a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--grid); }
+.toc span { margin: 0 6px; color: var(--grid); }
+</style>
+</head>
+<body>
+<main>
+
+<header class="title">
+  <p class="kicker">FlyRank ML Internship · Capstone · Refresh / Content Opportunity Scoring</p>
+  <h1>Which Pages Should You Refresh First?</h1>
+  <p class="subtitle">A month-ahead review queue for search visibility decline, tested on ~50,000 pages of real Search Console data against a transparent rule.</p>
+  <p class="byline">Soham Rathi · October 2026 · <a href="https://github.com/sohamrathi17/flyrank-ml-internship">Code and notebooks</a></p>
+  <p class="toc">
+    <a href="#abstract">Abstract</a><span>/</span><a href="#problem">Problem</a><span>/</span><a href="#data">Data</a><span>/</span><a href="#method">Method</a><span>/</span><a href="#results">Results</a><span>/</span><a href="#limits">Limitations</a><span>/</span><a href="#recommendations">Recommendations</a><span>/</span><a href="#repro">Reproducibility</a><span>/</span><a href="#credit">Credit</a>
+  </p>
+</header>
+
+<section class="abstract" id="abstract">
+  <h2>Abstract</h2>
+  <p>Content editors have time to review only a handful of a site's pages each month, so I asked which pages should be at the top of that list if the goal is to catch the ones that will keep losing search visibility next month. Using the FlyRank ML Internship warehouse, about 79 million rows of pseudonymised daily Google Search Console data, I built monthly snapshots in which features come from one month and the outcome (daily impressions falling more than 20%) from the next. I compared a transparent rule ("how much has this page already slid within the month?") with logistic regression and gradient-boosted trees on 16 signals, using client-grouped cross-validation, a time-aware split, a sealed final month evaluated once, and a client-level bootstrap. The rule put about <b>71-72% true decliners</b> in each client's top 20, against a base rate near <b>49%</b>, and held that level on the sealed month. The learned models traded small gains on one metric for losses on the other, and the best combined score was about one point above the rule, within the bootstrap noise. The result is a decision-support queue with reason codes, actions and confidence labels for choosing which pages to review first, not a causal claim about what a refresh will achieve.</p>
+</section>
+
+<div class="stats" aria-label="Headline numbers">
+  <div class="stat"><div class="v" id="s-rule">0.71</div><div class="l">precision@20 of the rule, per client, development month</div></div>
+  <div class="stat"><div class="v" id="s-base">0.49</div><div class="l">base rate: share of pages that declined</div></div>
+  <div class="stat"><div class="v" id="s-sealed">0.72</div><div class="l">rule on the sealed May→June month, run once</div></div>
+  <div class="stat"><div class="v" id="s-gain">+0.01</div><div class="l">model minus rule, within noise (95% CI includes 0)</div></div>
+</div>
+
+<h2 id="problem"><span class="num">1</span>Introduction: the decision this supports</h2>
+<p>Picture an editor responsible for a client site with 567 tracked pages, the median in this data. Each month they have time to open perhaps 20. Some pages are quietly sliding in Google's results; reviewing those early (refreshing facts, tightening titles, adding depth) is the cheapest moment to act. Reviewing a healthy page is wasted time, and sometimes worse than doing nothing.</p>
+<p>So the question is not "will this page decline?" for one page. It is a <b>ranking</b> question with a budget: <i>which 20 pages first?</i> That framing decides everything that follows. The metric is <b>precision@20 per client</b> (of the 20 pages at the top of a client's list, how many really declined next month), with a second check on how much of next month's lost visibility those 20 pages hold. Both were fixed before any model was trained.</p>
+<p>The obvious shortcuts do not work well. In a first look at the starter data, "biggest pages first" caught a lot of the lost traffic but was <i>less</i> accurate than random order, and "oldest" or "least recently updated" barely beat random. In the warehouse slice used here, "biggest pages first" reached a precision@20 of <span data-k="biggest_p">0.43</span> against a base rate of <span data-k="base">0.49</span>.</p>
+
+<h2 id="data"><span class="num">2</span>Data</h2>
+<p><b>Source.</b> The FlyRank ML Internship warehouse release on Hugging Face: pseudonymised daily Search Console performance per page, January 2025 to June 2026. I used two tables: <code>fact_content_daily_performance</code> (one row per page per day) and <code>dim_content</code> (only the page creation date and keyword metadata).</p>
+<p><b>Monthly snapshots.</b> One row is one page at the last day of a month. Features come from that month only; the label comes from the next month.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Snapshot</th><th>Features</th><th>Label</th><th class="n">Pages</th><th class="n">Clients</th><th>Used for</th></tr></thead>
+  <tbody id="t-slices"></tbody>
+</table></div>
+<p><b>Slice.</b> Pages with Search Console data on every day of both months (filtered with <code>gsc_data_available IS TRUE</code>, because the flag is three-valued) and at least 100 impressions in the feature month, so that a 20% change means something.</p>
+<p><b>What I excluded, and why.</b></p>
+<ul>
+  <li><b>Everything from the label month</b> as an input: it is the answer.</li>
+  <li><b>"Last updated" and "last optimised" dates</b>: the content table is a snapshot built after the panel ended, and for 78% of pages the "last updated" date falls <i>after</i> the decision moment. Using it would leak the future.</li>
+  <li><b>GA4 engagement data</b>: available on only about 4% of daily rows in the development month.</li>
+  <li><b>IDs as features</b>: client and page IDs are pseudonymous hashes used only to group, split and join. No client names, domains, URLs or search queries appear anywhere in this work.</li>
+</ul>
+
+<h2 id="method"><span class="num">3</span>Methodology</h2>
+<h3>Label</h3>
+<p>A page is <b>declining</b> when its average daily impressions next month are more than 20% below this month's. This is an observed outcome measured one month after the decision moment, not a rule someone defined on the same data. In the development month (March → April) <span data-k="dev_rate">47%</span> of slice pages declined; the rate moved a lot between months (21% for February → March, 59% for May → June).</p>
+<h3>Baseline rule</h3>
+<p>Before building it, I checked two signals the rule would lean on, each with a bucket table and sample sizes. Both were <b>confirmed</b>:</p>
+<ul>
+  <li><b>Momentum within the month</b> (late-half vs early-half daily impressions): the steeper the slide, the more often the page kept declining (Figure 2).</li>
+  <li><b>CTR versus position</b> (the signal behind FlyRank's CTR-fix logic): pages with clicks but CTR below their position tier's median declined more often, from 63% (under half the tier median) down to 34% (more than twice it).</li>
+</ul>
+<p>The rule: <b>score = impressions per day lost between the first and second half of the month</b>, multiplied by 1.5 when CTR is below its position-tier median. It is frozen and is what every model must beat.</p>
+<h3>Model</h3>
+<p>Logistic regression on 16 features, all knowable at the decision moment: impressions, clicks, CTR, impression-weighted position, momentum, size of the within-month drop, days with impressions, daily volatility, position change, share of the month on the single biggest day, page age, and keyword metadata (search volume, competition, keyword length, content type, intent). The ranking score is the model's decline probability × (1 + within-month drop per day). Gradient-boosted trees (classifier and expected-loss regressor) were also tested.</p>
+<h3>Validation design</h3>
+<ul>
+  <li><b>Grouped by client:</b> 5-fold cross-validation where each fold holds out whole clients, so every page is scored by a model that never saw its site.</li>
+  <li><b>Time-aware:</b> train on February → March, test on March → April.</li>
+  <li><b>Sealed final month:</b> the recipe was frozen, trained on April → May, and evaluated <b>once</b> on May → June. The receipt was written by that single run.</li>
+  <li><b>Uncertainty:</b> a bootstrap that resamples clients (2,000 times) for the model-minus-rule difference.</li>
+</ul>
+<h3>Leakage checks</h3>
+<ul>
+  <li>Adding next-month impressions as a deliberate leak pushed ROC-AUC to <span data-k="leak">0.999</span>; removing it brought the honest value back to <span data-k="auc_grouped">0.63</span>. The test harness catches leaks.</li>
+  <li>A random (non-grouped) split inflated ROC-AUC to <span data-k="auc_random">0.72</span>: about 9 points come from recognising a site already seen, which a new client would not get.</li>
+  <li>No label column or post-decision snapshot date is a feature. Dropping all keyword metadata changed results by less than one point.</li>
+  <li>Disclosed choice: the slice requires full Search Console coverage in the label month, which drops <span data-k="dropped">18.5%</span> of otherwise eligible pages.</li>
+</ul>
+
+<h2 id="results"><span class="num">4</span>Results</h2>
+<div class="callout"><p><b>Headline:</b> the transparent rule lifts precision@20 from about 0.49 to about 0.71 and held up on a sealed month. The learned models were not measurably better than the rule.</p></div>
+
+<figure>
+  <p class="ftitle">Figure 1. Which ranking finds the decliners?</p>
+  <p class="fsub">Development month (March → April), 22 clients with 20+ pages, out-of-fold. Left: precision@20. Right: share of each client's April lost impressions held by its top 20.</p>
+  <div class="chart" id="f1"></div>
+  <figcaption>Every learned model and the rule sit far above random order. Logistic regression alone is the most precise but catches less of the lost traffic; combining it with the drop size lands on top of the rule. "Biggest pages first" catches lost traffic but is less accurate than random.</figcaption>
+</figure>
+
+<figure>
+  <p class="ftitle">Figure 2. Pages already sliding inside March kept sliding in April</p>
+  <p class="fsub">Share of pages that declined in April, by March momentum (late-March daily impressions ÷ early-March). Hover for page counts.</p>
+  <div class="chart" id="f2"></div>
+  <figcaption>The decline rate falls at every step, from 83% for pages that halved their impressions within March to 25% for pages that more than doubled. Part of this is mechanical (April is compared with the whole March average), which is why the rule is validated forward in time, not just described.</figcaption>
+</figure>
+
+<figure>
+  <p class="ftitle">Figure 3. Rule vs model across three evaluations</p>
+  <p class="fsub">Precision@20 per client, averaged. The sealed month was evaluated once, after everything was frozen.</p>
+  <div class="legend"><span><i style="background:var(--series-1)"></i>ML-07 rule</span><span><i style="background:var(--series-2)"></i>Model (logistic × drop)</span><span><i style="background:var(--muted)"></i>Base rate</span></div>
+  <div class="chart" id="f3"></div>
+  <figcaption>The two methods track each other closely in every evaluation, all well above the base rate.</figcaption>
+</figure>
+
+<h3>How sure are these differences?</h3>
+<div class="tablewrap"><table>
+  <thead><tr><th>Difference (mean over clients)</th><th class="n">Development (22 clients)</th><th class="n">Sealed month (28 clients)</th></tr></thead>
+  <tbody id="t-boot"></tbody>
+</table></div>
+<p>The intervals for "model minus rule" on precision include zero in both periods, and on the sealed month the rule caught slightly <i>more</i> of the lost impressions. The rule's lift over the base rate is large and clearly above zero in both. Honest reading: <b>the rule is the result; the model confirms it rather than improving on it.</b></p>
+<p>The model is still useful as an explanation. Its largest weights push toward "decline" for a large within-month drop, high impressions and a single-day spike, and toward "holds up" for clicks and momentum. High impressions with few clicks behaves like a CTR warning, consistent with the signal check above.</p>
+<p><b>Probabilities do not transfer between months.</b> A model trained on February → March (21% declined) predicted on average <span data-k="cal_pred">24%</span> for March → April, where <span data-k="cal_act">47%</span> actually declined. Its ranking held up; its probabilities did not. The queue therefore shows ranks and reasons, never "X% chance".</p>
+
+<h2 id="limits"><span class="num">5</span>Limitations and honest framing</h2>
+<ul>
+  <li><b>Observational, not causal.</b> This work observed which pages kept losing visibility; it did not test what a refresh does. Nothing here says reviewing or refreshing a page will reverse a decline.</li>
+  <li><b>Not a model of Google.</b> It describes patterns in one portfolio's data over a few months of 2026.</li>
+  <li><b>Few, unequal clients.</b> Only 22-28 clients have 20 or more pages in a month, the three largest hold about two thirds of the pages, and only 8 clients were entirely new to the time-aware model. For clients with fewer than ~100 pages the queue showed no lift.</li>
+  <li><b>Population filter uses the outcome month.</b> Pages without full Search Console coverage next month are dropped; pages that vanished were never scored.</li>
+  <li><b>One label definition</b> (a 20% month-over-month drop). Seasonality and falling demand look the same as a page-level problem.</li>
+  <li><b>Most common false alarm:</b> a short spike early in the month that fades and then returns to normal. The rule reads that as a slide.</li>
+</ul>
+
+<h2 id="recommendations"><span class="num">6</span>Ranked recommendations: the action playbook</h2>
+<p>Each month, for each client, the queue lists pages in score order with an action, up to two reason codes and a confidence label. Built on 31 March from a model trained on February → March and graded afterwards on April:</p>
+<figure>
+  <p class="ftitle">Figure 4. Confidence labels mean something</p>
+  <p class="fsub">Share of top-20 picks that declined in April, by confidence label (22 clients with 20+ pages).</p>
+  <div class="chart" id="f4"></div>
+  <figcaption>High-confidence picks (real slide, not spike-shaped, 1,000+ impressions, client with 300+ pages) declined most often. The cut-offs were set from lessons on the same month, so next month's queue is the real test.</figcaption>
+</figure>
+<ol>
+  <li><b>Start with the top 10-20 of each client's queue, high-confidence rows first.</b></li>
+  <li><b>Refresh</b> sliding page-one pages (late-month impressions under 80% of early-month, average position ≤ 10): update facts, examples, title and description.</li>
+  <li><b>Expand</b> sliding pages in positions 11-20: add missing subtopics and depth.</li>
+  <li><b>Monitor</b> slides that look like a fading one-day spike or sit deeper than position 20. Monitor pages decline about as often as the others; the label means the right action is unclear, not that the page is safe.</li>
+  <li><b>Protect</b> steady page-one pages: listed so nobody "fixes" what works.</li>
+  <li><b>Before any edit, check daily impressions in Search Console</b> for a spike, a seasonal topic or a tracking gap.</li>
+  <li><b>Do not use the queue for clients under ~100 pages</b>, and never show it as a forecast or use it to automate rewrites, redirects or deletions.</li>
+  <li><b>Re-check every month:</b> if precision@20 falls below the plain rule for two months, use the rule.</li>
+</ol>
+<p>An example: the top 10 of one larger client's April queue (no page identities shown).</p>
+<div class="tablewrap"><table>
+  <thead><tr><th class="n">#</th><th>Action</th><th>Confidence</th><th>Why it is here</th></tr></thead>
+  <tbody id="t-queue"></tbody>
+</table></div>
+
+<h2 id="repro"><span class="num">7</span>Reproducibility</h2>
+<p>Everything is in the public repository <a href="https://github.com/sohamrathi17/flyrank-ml-internship">sohamrathi17/flyrank-ml-internship</a>. Each step is a notebook that runs top to bottom:</p>
+<ul>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/w03_data_contract.ipynb">Data contract</a>: grain, counts, availability, five features, the deliberate leak.</li>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/w04_baseline_score.ipynb">Baseline rule</a>: two signal checks, the rule, a hand review of the top 10.</li>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/w05_model.ipynb">Models vs baseline</a>: grouped cross-validation and error analysis.</li>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/w06_validation_audit.ipynb">Validation and leakage audit</a>: random vs grouped vs time-aware splits.</li>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/w07_action_playbook.ipynb">Action playbook</a>: the queue, human review, monitoring triggers.</li>
+  <li><a href="https://github.com/sohamrathi17/flyrank-ml-internship/blob/main/work/notebooks/capstone.ipynb">Capstone</a>: sealed month, bootstrap, and the build of this page.</li>
+</ul>
+<p>Shared code lives in <code>work/scripts/lane_data.py</code> (slice builder, rule, models, metrics) and <code>work/scripts/sealed_test.py</code>. Every number on this page is read from the committed JSON receipts in <code>work/outputs/</code> by <code>work/scripts/build_paper.py</code>. Seed 42 throughout; scikit-learn 1.6.1. To rerun: request access to the dataset, log in with a read token (<code>hf auth login</code>), <code>pip install -r requirements.txt duckdb</code>, and run the notebooks in order.</p>
+
+<h2 id="credit"><span class="num">8</span>Acknowledgments and data credit</h2>
+<p>Built on the <a href="https://flyrank.ai">FlyRank ML Internship dataset</a>. Thanks to the FlyRank team for releasing real, pseudonymised search data for learning, and for the internship curriculum, starter pipeline and research paper this work builds on.</p>
+
+<footer>
+  Claims on this page are observational and decision-support only: they describe patterns in one pseudonymised portfolio, not Google's ranking system and not the causal effect of any content change.
+</footer>
+</main>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const D = {"baseline_metrics":{"assignment":"ML-07 baseline action score","decision_moment":"2026-03-31","feature_window":"2026-03-01 to 2026-03-31 (month=2026-03 partition)","label_window":"2026-04-01 to 2026-04-30 (month=2026-04 partition), evaluation only","label_definition":"is_declining = 1 if April avg daily GSC impressions < 0.8 x March avg daily impressions","slice":"gsc_data_available IS TRUE on all 31 March and 30 April days, March impressions >= 100","rule":"score = max(0, early-March imp/day - late-March imp/day) x (1.5 if clicks > 0 and CTR below position-tier median else 1)","n_pages":50299,"n_clients":32,"k":20,"n_clients_evaluated":22,"n_pages_in_evaluated_clients":50234,"base_rate_pooled":0.4742,"base_rate_macro":0.4887,"precision_at_20_macro":0.7114,"random_precision_at_20_macro":0.4889,"biggest_first_precision_at_20_macro":0.4273,"loss_captured_top20_macro":0.2411,"random_loss_captured_top20_macro":0.1021,"biggest_first_loss_captured_top20_macro":0.2894,"clients_rule_beats_base_rate":21,"random_seed":42,"random_shuffles":200},"model_metrics":{"assignment":"ML-08 model vs baseline","slice":"decision 2026-03-31, features March 2026, label April 2026 (same as ML-04/ML-07)","split":"GroupKFold(5) by client, out-of-fold scores; metrics per client (>= 20 pages), then averaged","seed":42,"sklearn_version":"1.6.1","n_pages":50299,"n_clients":32,"results":{"random order (expected)":{"precision@20":0.4887,"loss captured@20":0.1043,"ROC-AUC":null},"ML-07 baseline rule":{"precision@20":0.7114,"loss captured@20":0.2411,"ROC-AUC":null},"logistic regression":{"precision@20":0.75,"loss captured@20":0.1973,"ROC-AUC":0.6327},"boosted trees (classifier)":{"precision@20":0.7341,"loss captured@20":0.1738,"ROC-AUC":0.6534},"boosted trees (expected loss)":{"precision@20":0.6909,"loss captured@20":0.2639,"ROC-AUC":null},"logistic prob x March drop/day":{"precision@20":0.7182,"loss captured@20":0.2425,"ROC-AUC":null}}},"validation_metrics":{"assignment":"ML-09 validation audit","test_slice":"decision 2026-03-31, label April 2026","time_train_slice":"decision 2026-02-28, label March 2026","score":"logistic probability x (1 + March drop per day)","seed":42,"designs":{"ML-07 rule (no training)":{"precision@20":0.7114,"loss_captured@20":0.2411,"ROC-AUC":null,"base_rate":0.4887},"before: random row split":{"precision@20":0.7159,"loss_captured@20":0.2424,"ROC-AUC":0.7226,"base_rate":0.4887},"after: grouped by client":{"precision@20":0.7182,"loss_captured@20":0.2425,"ROC-AUC":0.6327,"base_rate":0.4887},"after: time-aware (Feb->Mar train)":{"precision@20":0.7205,"loss_captured@20":0.2349,"ROC-AUC":0.6575,"base_rate":0.4887}},"new_clients_time_aware":{"clients":8,"precision@20":0.6438,"loss_captured@20":0.2325,"base_rate":0.3991},"calibration":{"mean_pred_time_model":0.2448,"actual_rate":0.4742,"train_month_rate":0.2106},"leak_test_auc":0.9994,"population_dropped_share":0.1849},"paper_data":{"slice":{"pages":50299,"clients":32,"decline_rate":0.4742,"train_pages":43596,"train_decline_rate":0.2106},"decline_by_momentum":[{"bucket":"< 0.5","n":3871,"rate":0.8261},{"bucket":"0.5-0.8","n":11357,"rate":0.6186},{"bucket":"0.8-0.95","n":7577,"rate":0.5042},{"bucket":"0.95-1.05","n":4913,"rate":0.4443},{"bucket":"1.05-2","n":18672,"rate":0.3558},{"bucket":"> 2","n":3909,"rate":0.2517}],"decline_by_ctr_vs_tier":[{"bucket":"< 0.5x tier","n":6168,"rate":0.6294},{"bucket":"0.5-1x","n":8884,"rate":0.5532},{"bucket":"1-2x","n":11206,"rate":0.474},{"bucket":"2x+","n":13534,"rate":0.3388}],"model_comparison":{"random order (expected)":{"precision@20":0.4887,"loss captured@20":0.1043,"ROC-AUC":null},"ML-07 baseline rule":{"precision@20":0.7114,"loss captured@20":0.2411,"ROC-AUC":null},"logistic regression":{"precision@20":0.75,"loss captured@20":0.1973,"ROC-AUC":0.6327},"boosted trees (classifier)":{"precision@20":0.7341,"loss captured@20":0.1738,"ROC-AUC":0.6534},"boosted trees (expected loss)":{"precision@20":0.6909,"loss captured@20":0.2639,"ROC-AUC":null},"logistic prob x March drop/day":{"precision@20":0.7182,"loss captured@20":0.2425,"ROC-AUC":null}},"validation":{"ML-07 rule (no training)":{"precision@20":0.7114,"loss_captured@20":0.2411,"ROC-AUC":null,"base_rate":0.4887},"before: random row split":{"precision@20":0.7159,"loss_captured@20":0.2424,"ROC-AUC":0.7226,"base_rate":0.4887},"after: grouped by client":{"precision@20":0.7182,"loss_captured@20":0.2425,"ROC-AUC":0.6327,"base_rate":0.4887},"after: time-aware (Feb->Mar train)":{"precision@20":0.7205,"loss_captured@20":0.2349,"ROC-AUC":0.6575,"base_rate":0.4887}},"new_clients_time_aware":{"clients":8,"precision@20":0.6438,"loss_captured@20":0.2325,"base_rate":0.3991},"calibration":{"mean_pred_time_model":0.2448,"actual_rate":0.4742,"train_month_rate":0.2106},"leak_test_auc":0.9994,"population_dropped_share":0.1849,"queue_eval":{"precision@20":0.7205,"loss_captured@20":0.2349,"rule_precision@20":0.7114,"rule_loss_captured@20":0.2411,"base_rate":0.4887,"clients":22},"top20_by_confidence":[{"label":"high","n":215,"rate":0.786},{"label":"medium","n":104,"rate":0.7212},{"label":"low","n":121,"rate":0.6033}],"top20_by_action":[{"label":"expand","n":45,"rate":0.7111},{"label":"monitor","n":142,"rate":0.7113},{"label":"protect","n":2,"rate":0.5},{"label":"refresh","n":251,"rate":0.7291}],"example_queue":[{"rank_in_client":1,"action":"monitor","confidence":"high","reason_codes":"daily impressions fell 64% within March","position":40.4},{"rank_in_client":2,"action":"refresh","confidence":"high","reason_codes":"daily impressions fell 50% within March; page 1 (avg position 6.9)","position":6.9},{"rank_in_client":3,"action":"monitor","confidence":"low","reason_codes":"daily impressions fell 52% within March; 30% of March impressions on one day (spike)","position":2.7},{"rank_in_client":4,"action":"monitor","confidence":"high","reason_codes":"daily impressions fell 60% within March; CTR below its position tier","position":28.1},{"rank_in_client":5,"action":"monitor","confidence":"high","reason_codes":"daily impressions fell 39% within March","position":27.0},{"rank_in_client":6,"action":"monitor","confidence":"high","reason_codes":"daily impressions fell 44% within March; CTR below its position tier","position":28.0},{"rank_in_client":7,"action":"monitor","confidence":"low","reason_codes":"daily impressions fell 77% within March; 58% of March impressions on one day (spike)","position":2.0},{"rank_in_client":8,"action":"refresh","confidence":"high","reason_codes":"daily impressions fell 23% within March; CTR below its position tier","position":2.9},{"rank_in_client":9,"action":"refresh","confidence":"high","reason_codes":"daily impressions fell 44% within March; page 1 (avg position 8.5)","position":8.5},{"rank_in_client":10,"action":"refresh","confidence":"high","reason_codes":"daily impressions fell 56% within March; page 1 (avg position 6.3)","position":6.3}]},"sealed_test_metrics":{"train":{"decision":"2026-04-30","pages":62056,"clients":35,"decline_rate":0.5248},"test":{"decision":"2026-05-31","pages":58399,"clients":37,"decline_rate":0.5944},"model_combined":{"clients":28,"precision@20":0.7321,"loss_captured@20":0.3398,"base_rate":0.4788},"ml07_rule":{"clients":28,"precision@20":0.7196,"loss_captured@20":0.356,"base_rate":0.4788},"roc_auc":0.6677,"mean_predicted_prob":0.4182},"capstone_metrics":{"sealed_test":{"train":{"decision":"2026-04-30","pages":62056,"clients":35,"decline_rate":0.5248},"test":{"decision":"2026-05-31","pages":58399,"clients":37,"decline_rate":0.5944},"model_combined":{"clients":28,"precision@20":0.7321,"loss_captured@20":0.3398,"base_rate":0.4788},"ml07_rule":{"clients":28,"precision@20":0.7196,"loss_captured@20":0.356,"base_rate":0.4788},"roc_auc":0.6677,"mean_predicted_prob":0.4182},"across_evaluations":{"Mar->Apr, grouped CV":{"rule p@20":0.7114,"model p@20":0.7182,"rule loss@20":0.2411,"model loss@20":0.2425,"base rate":0.4887},"Mar->Apr, trained on Feb->Mar":{"rule p@20":0.7114,"model p@20":0.7205,"rule loss@20":0.2411,"model loss@20":0.2349,"base rate":0.4887},"SEALED May->Jun, trained on Apr->May":{"rule p@20":0.7196,"model p@20":0.7321,"rule loss@20":0.356,"model loss@20":0.3398,"base rate":0.4788}},"bootstrap_95ci":{"dev Mar->Apr":{"model - rule, precision@20":{"mean":0.0068,"lo":-0.0068,"hi":0.0205},"model - rule, loss captured@20":{"mean":0.0014,"lo":-0.0037,"hi":0.0065},"rule - base rate, precision@20":{"mean":0.2226,"lo":0.1593,"hi":0.2841}},"sealed May->Jun":{"model - rule, precision@20":{"mean":0.0125,"lo":-0.0018,"hi":0.0268},"model - rule, loss captured@20":{"mean":-0.0161,"lo":-0.0295,"hi":-0.0042},"rule - base rate, precision@20":{"mean":0.2408,"lo":0.1877,"hi":0.3011}}},"bootstrap":{"resamples":2000,"unit":"client","seed":42}}};
+const $ = (s) => document.querySelector(s);
+const pct = (x) => Math.round(x * 100) + "%";
+const f2 = (x) => x.toFixed(2);
+const f3 = (x) => x.toFixed(3);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------- inline numbers ---------- */
+const mm = D.model_metrics.results;
+const vd = D.validation_metrics.designs;
+const sealed = D.sealed_test_metrics;
+const boot = D.capstone_metrics.bootstrap_95ci;
+const nums = {
+  biggest_p: f2(D.baseline_metrics.biggest_first_precision_at_20_macro),
+  base: f2(mm["random order (expected)"]["precision@20"]),
+  dev_rate: pct(D.paper_data.slice.decline_rate),
+  leak: f3(D.validation_metrics.leak_test_auc),
+  auc_grouped: f2(vd["after: grouped by client"]["ROC-AUC"]),
+  auc_random: f2(vd["before: random row split"]["ROC-AUC"]),
+  dropped: (D.validation_metrics.population_dropped_share * 100).toFixed(1) + "%",
+  cal_pred: pct(D.paper_data.calibration.mean_pred_time_model),
+  cal_act: pct(D.paper_data.calibration.actual_rate),
+};
+document.querySelectorAll("[data-k]").forEach((el) => { if (nums[el.dataset.k]) el.textContent = nums[el.dataset.k]; });
+$("#s-rule").textContent = f2(mm["ML-07 baseline rule"]["precision@20"]);
+$("#s-base").textContent = f2(mm["random order (expected)"]["precision@20"]);
+$("#s-sealed").textContent = f2(sealed.ml07_rule["precision@20"]);
+const g = boot["dev Mar->Apr"]["model - rule, precision@20"].mean;
+$("#s-gain").textContent = (g >= 0 ? "+" : "") + f2(g);
+
+/* ---------- tables ---------- */
+const sliceRows = [
+  ["Feb 2026 → Mar", "Feb 2026", "Mar 2026", D.paper_data.slice.train_pages, 23, "time-aware training"],
+  ["Mar 2026 → Apr", "Mar 2026", "Apr 2026", D.paper_data.slice.pages, D.paper_data.slice.clients, "development (grouped CV)"],
+  ["Apr 2026 → May", "Apr 2026", "May 2026", sealed.train.pages, sealed.train.clients, "training for the sealed test"],
+  ["May 2026 → Jun", "May 2026", "Jun 2026", sealed.test.pages, sealed.test.clients, "sealed test, run once"],
+];
+$("#t-slices").innerHTML = sliceRows.map((r) =>
+  `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="n">${r[3].toLocaleString("en-US")}</td><td class="n">${r[4]}</td><td>${r[5]}</td></tr>`).join("");
+
+const ci = (o) => `${o.mean >= 0 ? "+" : ""}${f3(o.mean)} <span style="color:var(--muted)">[${f3(o.lo)}, ${f3(o.hi)}]</span>`;
+const bootRows = [
+  ["Model − rule, precision@20", "model - rule, precision@20"],
+  ["Model − rule, lost impressions captured", "model - rule, loss captured@20"],
+  ["Rule − base rate, precision@20", "rule - base rate, precision@20"],
+];
+$("#t-boot").innerHTML = bootRows.map(([label, k]) =>
+  `<tr${k.startsWith("rule") ? ' class="hl"' : ""}><td>${label}</td><td class="n">${ci(boot["dev Mar->Apr"][k])}</td><td class="n">${ci(boot["sealed May->Jun"][k])}</td></tr>`).join("") +
+  `<tr><td colspan="3" style="color:var(--muted);font-size:13px">Mean difference with 95% bootstrap interval in brackets (2,000 resamples of clients, seed 42).</td></tr>`;
+
+$("#t-queue").innerHTML = D.paper_data.example_queue.map((r) =>
+  `<tr><td class="n">${r.rank_in_client}</td><td><span class="pill">${r.action}</span></td><td><span class="pill">${r.confidence}</span></td><td>${r.reason_codes}</td></tr>`).join("");
+
+/* ---------- tooltip ---------- */
+const tip = $("#tip");
+function showTip(e, html) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  const y = Math.max(8, e.clientY - tip.offsetHeight - 12);
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip() { tip.style.opacity = 0; }
+function bindTip(el, html) {
+  el.addEventListener("pointermove", (e) => showTip(e, html));
+  el.addEventListener("pointerleave", hideTip);
+  el.addEventListener("focus", () => { const r = el.getBoundingClientRect(); showTip({ clientX: r.right, clientY: r.top }, html); });
+  el.addEventListener("blur", hideTip);
+  el.setAttribute("tabindex", "0");
+}
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs, parent) {
+  const el = document.createElementNS(NS, tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+function roundedBarPath(x, y, w, h, r) {   // rounded at the data end (right), square at the baseline
+  r = Math.min(r, h / 2, w);
+  return `M${x},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x} Z`;
+}
+function roundedColPath(x, y, w, h, r) {   // rounded at the top
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+}
+
+/* ---------- Figure 1: two small horizontal bar panels (no dual axis) ---------- */
+function drawF1() {
+  const host = $("#f1"); host.innerHTML = "";
+  const rows = [
+    ["Random order", mm["random order (expected)"]],
+    ["Biggest pages first", { "precision@20": D.baseline_metrics.biggest_first_precision_at_20_macro, "loss captured@20": D.baseline_metrics.biggest_first_loss_captured_top20_macro }],
+    ["Rule (ML-07)", mm["ML-07 baseline rule"], true],
+    ["Logistic regression", mm["logistic regression"]],
+    ["Boosted trees", mm["boosted trees (classifier)"]],
+    ["Boosted trees (loss)", mm["boosted trees (expected loss)"]],
+    ["Logistic × drop", mm["logistic prob x March drop/day"]],
+  ];
+  const W = host.clientWidth || 700;
+  const narrow = W < 560;
+  const labelW = narrow ? 128 : 150, gap = 22, rowH = 26, top = 22;
+  const panelW = narrow ? W - labelW - 12 : (W - labelW - gap) / 2;
+  const panels = narrow
+    ? [{ key: "precision@20", title: "precision@20", x0: labelW, max: 1 }, { key: "loss captured@20", title: "lost impressions captured", x0: labelW, max: 0.5, dy: rows.length * rowH + 50 }]
+    : [{ key: "precision@20", title: "precision@20", x0: labelW, max: 1 }, { key: "loss captured@20", title: "lost impressions captured", x0: labelW + panelW + gap, max: 0.5 }];
+  const H = narrow ? 2 * (rows.length * rowH + 50) : rows.length * rowH + 50;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Precision at 20 and lost impressions captured by ranking method" }, host);
+  panels.forEach((p) => {
+    const dy = p.dy || 0;
+    svgEl("text", { x: p.x0, y: dy + 12, "font-size": 12, fill: css("--ink-2"), "font-weight": 600 }, svg).textContent = p.title;
+    [0, p.max / 2, p.max].forEach((t) => {
+      const x = p.x0 + (t / p.max) * (panelW - 8);
+      svgEl("line", { x1: x, x2: x, y1: dy + top, y2: dy + top + rows.length * rowH, stroke: css("--grid"), "stroke-width": 1 }, svg);
+      svgEl("text", { x, y: dy + top + rows.length * rowH + 14, "font-size": 11, fill: css("--muted"), "text-anchor": "middle" }, svg).textContent = f2(t);
+    });
+    rows.forEach(([label, m, hl], i) => {
+      const y = dy + top + i * rowH + 5, v = m[p.key];
+      if (p === panels[0] || narrow) {
+        svgEl("text", { x: labelW - 8, y: y + 12, "font-size": 12.5, fill: hl ? css("--ink") : css("--ink-2"), "text-anchor": "end", "font-weight": hl ? 600 : 400 }, svg).textContent = label;
+      }
+      const w = Math.max(1, (v / p.max) * (panelW - 8));
+      const bar = svgEl("path", { d: roundedBarPath(p.x0, y, w, rowH - 10, 4), fill: hl ? css("--series-1") : css("--series-1-soft") }, svg);
+      svgEl("text", { x: p.x0 + w + 5, y: y + 12, "font-size": 11.5, fill: css("--ink-2") }, svg).textContent = f2(v);
+      bindTip(bar, `<b>${label}</b><br>${p.title}: ${f3(v)}`);
+    });
+  });
+}
+
+/* ---------- Figure 2: columns by momentum bucket ---------- */
+function drawF2() {
+  const host = $("#f2"); host.innerHTML = "";
+  const rows = D.paper_data.decline_by_momentum;
+  const W = host.clientWidth || 700, H = 250, L = 40, B = 40, T = 12;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Share of pages declining in April by March momentum bucket" }, host);
+  const plotW = W - L - 8, plotH = H - B - T, bw = plotW / rows.length;
+  [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+    const y = T + plotH * (1 - t);
+    svgEl("line", { x1: L, x2: W - 8, y1: y, y2: y, stroke: t === 0 ? css("--axis") : css("--grid"), "stroke-width": 1 }, svg);
+    svgEl("text", { x: L - 6, y: y + 4, "font-size": 11, fill: css("--muted"), "text-anchor": "end" }, svg).textContent = pct(t);
+  });
+  const avg = D.paper_data.slice.decline_rate, ya = T + plotH * (1 - avg);
+  svgEl("line", { x1: L, x2: W - 8, y1: ya, y2: ya, stroke: css("--muted"), "stroke-width": 1.5, "stroke-dasharray": "4 4" }, svg);
+  rows.forEach((r, i) => {
+    const h = plotH * r.rate, x = L + i * bw + bw * 0.18, w = bw * 0.64;
+    const col = svgEl("path", { d: roundedColPath(x, T + plotH - h, w, h, 4), fill: css("--series-1") }, svg);
+    svgEl("text", { x: x + w / 2, y: T + plotH - h - 5, "font-size": 11.5, fill: css("--ink-2"), "text-anchor": "middle", stroke: css("--surface"), "stroke-width": 4, "paint-order": "stroke" }, svg).textContent = pct(r.rate);
+    svgEl("text", { x: x + w / 2, y: H - B + 16, "font-size": 11.5, fill: css("--ink-2"), "text-anchor": "middle" }, svg).textContent = r.bucket;
+    bindTip(col, `<b>Momentum ${r.bucket}</b><br>${pct(r.rate)} declined in April<br>n = ${r.n.toLocaleString("en-US")} pages`);
+  });
+  svgEl("text", { x: W - 10, y: ya - 6, "font-size": 11, fill: css("--muted"), "text-anchor": "end" }, svg).textContent = "all pages " + pct(avg);
+  svgEl("text", { x: L + plotW / 2, y: H - 6, "font-size": 11.5, fill: css("--muted"), "text-anchor": "middle" }, svg).textContent = "March momentum: late-month ÷ early-month daily impressions";
+}
+
+/* ---------- Figure 3: dot plot, rule vs model vs base rate ---------- */
+function drawF3() {
+  const host = $("#f3"); host.innerHTML = "";
+  const ev = D.capstone_metrics.across_evaluations;
+  const labels = { "Mar->Apr, grouped CV": "Mar → Apr, grouped CV", "Mar->Apr, trained on Feb->Mar": "Mar → Apr, trained on Feb → Mar", "SEALED May->Jun, trained on Apr->May": "Sealed May → Jun (run once)" };
+  const keys = Object.keys(ev);
+  const W = host.clientWidth || 700, narrow = W < 560;
+  const L = narrow ? 12 : 230, rowH = narrow ? 64 : 46, T = 10, H = T + keys.length * rowH + 30;
+  const lo = 0.4, hi = 0.8, plotW = W - L - 16;
+  const X = (v) => L + ((v - lo) / (hi - lo)) * plotW;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Precision at 20 of rule and model across evaluations" }, host);
+  [0.4, 0.5, 0.6, 0.7, 0.8].forEach((t) => {
+    svgEl("line", { x1: X(t), x2: X(t), y1: T, y2: T + keys.length * rowH, stroke: css("--grid"), "stroke-width": 1 }, svg);
+    svgEl("text", { x: X(t), y: T + keys.length * rowH + 16, "font-size": 11, fill: css("--muted"), "text-anchor": "middle" }, svg).textContent = f2(t);
+  });
+  keys.forEach((k, i) => {
+    const e = ev[k], yc = T + i * rowH + (narrow ? 38 : rowH / 2);
+    svgEl("text", narrow ? { x: L, y: yc - 18, "font-size": 12.5, fill: css("--ink-2") } : { x: L - 12, y: yc + 4, "font-size": 12.5, fill: css("--ink-2"), "text-anchor": "end" }, svg).textContent = labels[k] || k;
+    svgEl("line", { x1: X(e["base rate"]), x2: X(Math.max(e["rule p@20"], e["model p@20"])), y1: yc, y2: yc, stroke: css("--axis"), "stroke-width": 2 }, svg);
+    const pts = [["Base rate", e["base rate"], css("--muted")], ["Rule", e["rule p@20"], css("--series-1")], ["Model", e["model p@20"], css("--series-2")]];
+    pts.forEach(([name, v, color]) => {
+      const c = svgEl("circle", { cx: X(v), cy: yc, r: 6.5, fill: color, stroke: css("--surface"), "stroke-width": 2 }, svg);
+      bindTip(c, `<b>${labels[k] || k}</b><br>${name}: ${f3(v)}<br>rule ${f3(e["rule p@20"])} · model ${f3(e["model p@20"])} · base ${f3(e["base rate"])}`);
+    });
+  });
+}
+
+/* ---------- Figure 4: bars by confidence ---------- */
+function drawF4() {
+  const host = $("#f4"); host.innerHTML = "";
+  const rows = D.paper_data.top20_by_confidence;
+  const W = host.clientWidth || 700, labelW = 90, rowH = 34, T = 6, H = T + rows.length * rowH + 26;
+  const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Share of top-20 picks that declined by confidence label" }, host);
+  const plotW = W - labelW - 50, X = (v) => labelW + v * plotW;
+  [0, 0.25, 0.5, 0.75, 1].forEach((t) => {
+    svgEl("line", { x1: X(t), x2: X(t), y1: T, y2: T + rows.length * rowH, stroke: css("--grid"), "stroke-width": 1 }, svg);
+    svgEl("text", { x: X(t), y: T + rows.length * rowH + 16, "font-size": 11, fill: css("--muted"), "text-anchor": "middle" }, svg).textContent = pct(t);
+  });
+  const base = D.paper_data.queue_eval.base_rate;
+  rows.forEach((r, i) => {
+    const y = T + i * rowH + 7;
+    svgEl("text", { x: labelW - 10, y: y + 14, "font-size": 12.5, fill: css("--ink-2"), "text-anchor": "end" }, svg).textContent = r.label;
+    const bar = svgEl("path", { d: roundedBarPath(labelW, y, r.rate * plotW, rowH - 14, 4), fill: css("--series-1") }, svg);
+    svgEl("text", { x: X(r.rate) + 6, y: y + 14, "font-size": 11.5, fill: css("--ink-2") }, svg).textContent = pct(r.rate);
+    bindTip(bar, `<b>${r.label} confidence</b><br>${pct(r.rate)} declined in April<br>n = ${r.n} top-20 picks`);
+  });
+  svgEl("line", { x1: X(base), x2: X(base), y1: T, y2: T + rows.length * rowH, stroke: css("--muted"), "stroke-width": 1.5, "stroke-dasharray": "4 4" }, svg);
+  svgEl("text", { x: X(base) + 4, y: T + rows.length * rowH - 4, "font-size": 11, fill: css("--muted") }, svg).textContent = "base rate " + pct(base);
+}
+
+function drawAll() { drawF1(); drawF2(); drawF3(); drawF4(); }
+drawAll();
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+</script>
+</body>
+</html>

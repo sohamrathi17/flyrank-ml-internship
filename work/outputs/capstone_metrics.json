@@ -1,0 +1,94 @@
+{
+  "sealed_test": {
+    "train": {
+      "decision": "2026-04-30",
+      "pages": 62056,
+      "clients": 35,
+      "decline_rate": 0.5248
+    },
+    "test": {
+      "decision": "2026-05-31",
+      "pages": 58399,
+      "clients": 37,
+      "decline_rate": 0.5944
+    },
+    "model_combined": {
+      "clients": 28,
+      "precision@20": 0.7321,
+      "loss_captured@20": 0.3398,
+      "base_rate": 0.4788
+    },
+    "ml07_rule": {
+      "clients": 28,
+      "precision@20": 0.7196,
+      "loss_captured@20": 0.356,
+      "base_rate": 0.4788
+    },
+    "roc_auc": 0.6677,
+    "mean_predicted_prob": 0.4182
+  },
+  "across_evaluations": {
+    "Mar->Apr, grouped CV": {
+      "rule p@20": 0.7114,
+      "model p@20": 0.7182,
+      "rule loss@20": 0.2411,
+      "model loss@20": 0.2425,
+      "base rate": 0.4887
+    },
+    "Mar->Apr, trained on Feb->Mar": {
+      "rule p@20": 0.7114,
+      "model p@20": 0.7205,
+      "rule loss@20": 0.2411,
+      "model loss@20": 0.2349,
+      "base rate": 0.4887
+    },
+    "SEALED May->Jun, trained on Apr->May": {
+      "rule p@20": 0.7196,
+      "model p@20": 0.7321,
+      "rule loss@20": 0.356,
+      "model loss@20": 0.3398,
+      "base rate": 0.4788
+    }
+  },
+  "bootstrap_95ci": {
+    "dev Mar->Apr": {
+      "model - rule, precision@20": {
+        "mean": 0.0068,
+        "lo": -0.0068,
+        "hi": 0.0205
+      },
+      "model - rule, loss captured@20": {
+        "mean": 0.0014,
+        "lo": -0.0037,
+        "hi": 0.0065
+      },
+      "rule - base rate, precision@20": {
+        "mean": 0.2226,
+        "lo": 0.1593,
+        "hi": 0.2841
+      }
+    },
+    "sealed May->Jun": {
+      "model - rule, precision@20": {
+        "mean": 0.0125,
+        "lo": -0.0018,
+        "hi": 0.0268
+      },
+      "model - rule, loss captured@20": {
+        "mean": -0.0161,
+        "lo": -0.0295,
+        "hi": -0.0042
+      },
+      "rule - base rate, precision@20": {
+        "mean": 0.2408,
+        "lo": 0.1877,
+        "hi": 0.3011
+      }
+    }
+  },
+  "bootstrap": {
+    "resamples": 2000,
+    "unit": "client",
+    "seed": 42
+  }
+}

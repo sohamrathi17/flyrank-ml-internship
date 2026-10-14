@@ -1,0 +1,28 @@
+{
+  "train": {
+    "decision": "2026-04-30",
+    "pages": 62056,
+    "clients": 35,
+    "decline_rate": 0.5248
+  },
+  "test": {
+    "decision": "2026-05-31",
+    "pages": 58399,
+    "clients": 37,
+    "decline_rate": 0.5944
+  },
+  "model_combined": {
+    "clients": 28,
+    "precision@20": 0.7321,
+    "loss_captured@20": 0.3398,
+    "base_rate": 0.4788
+  },
+  "ml07_rule": {
+    "clients": 28,
+    "precision@20": 0.7196,
+    "loss_captured@20": 0.356,
+    "base_rate": 0.4788
+  },
+  "roc_auc": 0.6677,
+  "mean_predicted_prob": 0.4182
+}
